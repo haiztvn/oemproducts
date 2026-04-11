@@ -5,11 +5,14 @@ const db = mysql.createPool({
   user: "u545267825_hai_autoparts",
   password: "071023Hai*",
   database: "u545267825_oemproducts",
-  port: 3306, // Đảm bảo cổng đúng
+  port: 3306,
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0,
-  connectTimeout: 20000 // Tăng thời gian chờ lên 20 giây
+  connectTimeout: 30000, // Tăng lên 30s
+  ssl: {
+    rejectUnauthorized: false // Thử thêm dòng này để bỏ qua kiểm tra chứng chỉ SSL
+  }
 });
 
 // Test kết nối bằng Promise để bắt lỗi chính xác hơn
