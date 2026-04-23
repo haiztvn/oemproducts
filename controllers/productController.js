@@ -27,20 +27,26 @@ export const getProductsByCategory = (req, res) => {
   });
 };
 export const searchProducts = (req, res) => {
-  const query = req.query.q;
-  
+  let query = req.query.q;
+
   if (!query) {
     return res.status(400).json({ message: "Search query is required" });
   }
 
-  // Tìm kiếm tương đối (LIKE) trong cả 3 cột: Article, oem và name
+  // Bước 1: Loại bỏ tất cả dấu gạch ngang trong từ khóa tìm kiếm của người dùng
+  // Ví dụ: "76377445" hoặc "7637-7445" đều trở thành "76377445"
+  const cleanQuery = query.replace(/-/g, "");
+  const searchTerm = `%${cleanQuery}%`;
+
+  // Bước 2: SQL REPLACE(column, '-', '') giúp bỏ dấu gạch ngang trong DB để so sánh
   const sql = `
     SELECT * FROM products 
-    WHERE Article LIKE ? OR oem LIKE ? OR name LIKE ?
+    WHERE REPLACE(Article, '-', '') LIKE ? 
+       OR REPLACE(oem, '-', '') LIKE ? 
+       OR name LIKE ?
   `;
-  const searchTerm = `%${query}%`;
 
-  db.query(sql, [searchTerm, searchTerm, searchTerm], (err, results) => {
+  db.query(sql, [searchTerm, searchTerm, `%${query}%`], (err, results) => {
     if (err) {
       console.error("Search Error:", err);
       return res.status(500).json({ error: "Internal Server Error" });
