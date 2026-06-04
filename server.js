@@ -38,8 +38,8 @@ app.use(cookieParser());
 // ✅ Hàm helper tạo cookie options theo môi trường
 const cookieOptions = () => ({
   httpOnly: true,
-  secure: process.env.NODE_ENV === 'production',   // true trên Render, false ở local
-  sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // none cho cross-domain
+   secure: true,        // ← hardcode true
+  sameSite: 'none',    // ← hardcode none
   path: '/'
 });
 
