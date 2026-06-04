@@ -16,17 +16,28 @@ const app = express();
 // Khi đưa lên Render, bạn có thể cần cấu hình này để Frontend truy cập được
 app.set('trust proxy', 1);
 app.use(cors({
-  origin: process.env.PORTFRONTEND, // Điền đúng địa chỉ React của bạn
-  credentials: true // BẮT BUỘC PHẢI CÓ DÒNG NÀY ĐỂ NHẬN COOKIE
+  origin: function (origin, callback) {
+    const allowedOrigins = [
+      process.env.PORTFRONTEND,        // VD: https://topoto.org
+      'http://localhost:5173',          // local dev
+      'http://localhost:3000',
+    ];
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
 }));
 
 app.use(session({
-  secret: process.env.SESSION_SECRET || 'BiMatPhuTungXeHoi',
+  secret: process.env.SESSION_SECRET,
   resave: false,
   saveUninitialized: false,
   cookie: {
-    secure: true,     // Bắt buộc là true khi chạy online
-    sameSite: 'none', // Bắt buộc là none vì topoto.org và onrender.com khác domain gốc
+    secure: process.env.NODE_ENV === 'production', // ← tự động theo env
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
     httpOnly: true,
     maxAge: 24 * 60 * 60 * 1000
   }
