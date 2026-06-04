@@ -4,6 +4,14 @@ import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import CryptoJS from 'crypto-js';
 
+// Thêm hàm helper này vào đầu file, sau các import
+const cookieConfig = () => ({
+  httpOnly: true,
+  secure: process.env.NODE_ENV === 'production',
+  sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+  path: '/'
+});
+
 const JWT_SECRET = process.env.JWT_SECRET;
 
 // ==========================================
@@ -100,12 +108,8 @@ export const login = async (payload, res, secretKey) => {
       { expiresIn: '1h' }
     );
 
-    const cookieOptions = {
-      httpOnly: true,
-      secure: false,
-      sameSite: 'lax',
-      path: '/'
-    };
+    const cookieOptions = cookieConfig();
+
 
     res.clearCookie('guest_token', cookieOptions);
 
@@ -137,12 +141,7 @@ export const login = async (payload, res, secretKey) => {
 // ==========================================
 export const logout = async (payload, res, secretKey) => {
   try {
-    const cookieOptions = {
-      httpOnly: true,
-      secure: false,
-      sameSite: 'lax',
-      path: '/'
-    };
+    const cookieOptions = cookieConfig();
 
     res.clearCookie('token', cookieOptions);
     res.clearCookie('guest_token', cookieOptions);
