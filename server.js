@@ -14,9 +14,22 @@ const app = express();
 
 // 1. Cấu hình CORS linh hoạt
 // Khi đưa lên Render, bạn có thể cần cấu hình này để Frontend truy cập được
+app.set('trust proxy', 1);
 app.use(cors({
   origin: process.env.PORTFRONTEND, // Điền đúng địa chỉ React của bạn
   credentials: true // BẮT BUỘC PHẢI CÓ DÒNG NÀY ĐỂ NHẬN COOKIE
+}));
+
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'BiMatPhuTungXeHoi',
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    secure: true,     // Bắt buộc là true khi chạy online
+    sameSite: 'none', // Bắt buộc là none vì topoto.org và onrender.com khác domain gốc
+    httpOnly: true,
+    maxAge: 24 * 60 * 60 * 1000
+  }
 }));
 
 app.use(express.json());
