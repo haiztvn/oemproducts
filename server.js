@@ -1,27 +1,79 @@
+import 'dotenv/config';
 import express from "express";
 import cors from "cors";
 import categoryRoutes from "./routes/categoryRoutes.js";
 import productLineRoutes from "./routes/productLineRoutes.js";
 import productRoutes from "./routes/productRoutes.js";
+import authRoutes from "./routes/authRoutes.js";
+import { handleGateway } from "./controllers/gatewayController.js";
+import cookieParser from 'cookie-parser';
+import crypto from 'crypto';
+import jwt from 'jsonwebtoken';
 
 const app = express();
 
 // 1. Cấu hình CORS linh hoạt
 // Khi đưa lên Render, bạn có thể cần cấu hình này để Frontend truy cập được
-app.use(cors());
+app.use(cors({
+  origin: process.env.PORTFRONTEND, // Điền đúng địa chỉ React của bạn
+  credentials: true // BẮT BUỘC PHẢI CÓ DÒNG NÀY ĐỂ NHẬN COOKIE
+}));
 
 app.use(express.json());
+app.use(cookieParser());
 
-// 2. Định nghĩa các Routes
-app.use("/categories", categoryRoutes);
-app.use("/product-lines", productLineRoutes);
-app.use("/products", productRoutes);
+// TRONG FILE backend/server.js
+app.get('/api/init-session', (req, res) => {
+  try {
+    // 1. 🔥 NẾU ĐÃ CÓ TOKEN ĐĂNG NHẬP (VIP) -> Trích xuất khóa cũ trả về, không đẻ khóa mới
+    if (req.cookies.token) {
+      const decoded = jwt.verify(req.cookies.token, process.env.JWT_SECRET);
+      // SỬA TẠI ĐÂY: Trả thêm username và role từ Token VIP về để React đồng bộ lại khi F5
+      return res.status(200).json({
+        guestKey: decoded.sessionKey,
+        username: decoded.username,
+        role: decoded.role
+      });
+    }
 
-// 3. Route kiểm tra nhanh (Health Check)
-// Giúp bạn biết Server có đang sống hay không khi truy cập đường dẫn gốc
-app.get("/", (req, res) => {
-  res.send("Backend is running...");
+    // 2. 🔥 NẾU ĐÃ CÓ GUEST_TOKEN (KHÁCH CŨ) -> Trích xuất khóa cũ trả về, KHÔNG ĐẺ KHÓA MỚI
+    if (req.cookies.guest_token) {
+      const decoded = jwt.verify(req.cookies.guest_token, process.env.JWT_SECRET);
+      // SỬA TẠI ĐÂY: Khách vãng lai mặc định gán quyền Client
+      return res.status(200).json({ guestKey: decoded.sessionKey, role: 'Client' });
+    }
+
+    // 3. CHỈ KHI TRỐNG TRƠN HOÀN TOÀN (Lần đầu tiên vào web) -> Mới đẻ khóa mới tinh
+    const guestKey = crypto.randomBytes(16).toString('hex');
+    const guestToken = jwt.sign({ sessionKey: guestKey }, process.env.JWT_SECRET, { expiresIn: '24h' });
+
+    res.cookie('guest_token', guestToken, {
+      httpOnly: true,
+      secure: false, // localhost
+      sameSite: 'lax',
+      path: '/'
+    });
+
+    // SỬA TẠI ĐÂY: Mặc định gán quyền Client
+    return res.status(200).json({ guestKey: guestKey, role: 'Client' });
+
+  } catch (error) {
+    // Đề phòng trường hợp Token cũ lưu trong máy bị hết hạn hoặc lỗi thời
+    // Tiến hành xóa sạch để làm lại bộ khóa mới
+    res.clearCookie('token', { path: '/' });
+    res.clearCookie('guest_token', { path: '/' });
+
+    const fallbackKey = crypto.randomBytes(16).toString('hex');
+    const fallbackToken = jwt.sign({ sessionKey: fallbackKey }, process.env.JWT_SECRET, { expiresIn: '24h' });
+
+    res.cookie('guest_token', fallbackToken, { httpOnly: true, secure: false, sameSite: 'lax', path: '/' });
+
+    // SỬA TẠI ĐÂY: Mặc định gán quyền Client
+    return res.status(200).json({ guestKey: fallbackKey, role: 'Client' });
+  }
 });
+
+app.post("/api/gateway", handleGateway);
 
 // 4. CẤU HÌNH PORT (QUAN TRỌNG NHẤT CHO RENDER)
 // Render sẽ tự cấp một cổng qua biến môi trường process.env.PORT
