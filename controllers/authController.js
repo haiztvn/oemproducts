@@ -9,7 +9,7 @@ const cookieConfig = () => ({
   httpOnly: true,
   secure: true,
   sameSite: 'lax',
-  domain: process.env.NODE_ENV === 'production' ? '.autoparts.com' : undefined,
+  domain: process.env.NODE_ENV === 'production' ? '.topoto.org' : undefined,
   path: '/'
 });
 
