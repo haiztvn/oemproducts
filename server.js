@@ -38,8 +38,9 @@ app.use(cookieParser());
 // ✅ Hàm helper tạo cookie options theo môi trường
 const cookieOptions = () => ({
   httpOnly: true,
-   secure: true,        // ← hardcode true
-  sameSite: 'none',    // ← hardcode none
+  secure: true,
+  sameSite: 'lax',
+  domain: process.env.NODE_ENV === 'production' ? '.autoparts.com' : undefined,
   path: '/'
 });
 

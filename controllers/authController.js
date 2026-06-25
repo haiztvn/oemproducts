@@ -7,8 +7,9 @@ import CryptoJS from 'crypto-js';
 // Thêm hàm helper này vào đầu file, sau các import
 const cookieConfig = () => ({
   httpOnly: true,
-  secure: process.env.NODE_ENV === 'production',
-  sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+  secure: true,
+  sameSite: 'lax',
+  domain: process.env.NODE_ENV === 'production' ? '.autoparts.com' : undefined,
   path: '/'
 });
 
